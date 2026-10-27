@@ -1,0 +1,71 @@
+
+@startuml
+
+skinparam classAttributeIconSize 0
+skinparam backgroundColor white
+skinparam classBackgroundColor #F9F9F9
+skinparam classBorderColor #333333
+skinparam linetype ortho
+
+class VoleMachine {
+    - memory: Memory
+    - registers: Registers
+    - cpu: CPU
+    + loadProgram(fileName: string): void
+    + run(): void
+    + reset(): void
+}
+
+class Memory {
+    - cells: string[256]
+    + getCell(address: int): string
+    + setCell(address: int, value: string): void
+    + loadProgram(fileName: string): void
+}
+
+class Registers {
+    - reg: string[16]
+    + getRegister(index: int): string
+    + setRegister(index: int, value: string): void
+    + getPC(): int
+    + setPC(address: int): void
+    + getIR(): string
+    + setIR(instruction: string): void
+}
+
+class CPU {
+    - pc: int
+    - instructionRegister: string
+    + fetch(memory: Memory): string
+    + decode(instruction: string): void
+    + execute(): void
+    + runStep(): void
+}
+
+class ControlUnit {
+    + decodeInstruction(instruction: string): void
+    + generateControlSignals(): void
+    + executeInstruction(): void
+}
+
+class ALU {
+    + executeOperation(op: string, v1: string, v2: string): string
+    + add(v1: string, v2: string): string
+    + subtract(v1: string, v2: string): string
+    + compare(v1: string, v2: string): bool
+}
+
+VoleMachine *-- Memory
+VoleMachine *-- Registers
+VoleMachine *-- CPU
+
+CPU *-- ControlUnit
+CPU *-- ALU
+
+CPU --> Memory : fetch / read
+CPU --> Registers : access
+ControlUnit --> ALU : operation control
+ControlUnit --> Memory : memory control
+ControlUnit --> Registers : register control
+
+@enduml
