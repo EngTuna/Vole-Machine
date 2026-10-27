@@ -1,0 +1,43 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Memory {
+    - cells: byte[256]
+    + getCell(address: int): byte
+    + setCell(address: int, value: byte): void
+    + reset(): void
+    + loadProgram(program: byte[], startIndex: int): void
+}
+
+class RegisterFile {
+    - registers: byte[16]
+    + getRegister(index: int): byte
+    + setRegister(index: int, value: byte): void
+    + reset(): void
+}
+
+class ALU {
+    + addTwoComplement(op1: byte, op2: byte): byte
+    + addFloatingPoint(op1: byte, op2: byte): byte
+    + bitwiseOr(op1: byte, op2: byte): byte
+    + bitwiseAnd(op1: byte, op2: byte): byte
+    + bitwiseXor(op1: byte, op2: byte): byte
+    + rotateRight(op: byte, steps: int): byte
+}
+
+class CPU {
+    - pc: int
+    - ir: short
+    - halted: boolean
+    + fetch(): void
+    + decodeAndExecute(): void
+    + run(): void
+    + step(): void
+    + isHalted(): boolean
+}
+
+CPU --> Memory : accesses / modifies
+CPU --> RegisterFile : manages
+CPU --> ALU : uses for operations
+
+@enduml
