@@ -1,0 +1,141 @@
+@startuml
+title Final Design — Vole Machine Simulator
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #F9F9F9
+skinparam classBorderColor #1F4E79
+skinparam shadowing false
+skinparam defaultFontSize 17
+skinparam nodesep 34
+skinparam ranksep 42
+left to right direction
+package "Boundary / control" {
+  class ConsoleUI <<boundary>> {
+    +start(): void
+    +displayState(machine): void
+    +chooseRunMode(): RunMode}
+  class ProgramLoader <<boundary>> {
+
+    +load(file, start, memory): bool
+    -parseLine(line): Word
+    -validateRange(start, count): bool
+  }
+  class VoleMachine <<facade>> {
+    -memory: Memory
+    -registers: RegisterFile
+    -cpu: CPU
+    -loader: ProgramLoader
+    -screen: Screen
+    +loadProgram(file, start): bool
+    +runStep(): Status
+    +runAll(): Status
+    +reset(): void
+  }
+}
+package "Vole machine domain" {
+  class CPU {
+    -pc: Address
+    -ir: Word
+    -halted: bool
+    +step(): Status
+    +runAll(): Status
+    +reset(start): void
+  }
+  class ControlUnit {
+    +execute(instruction): Status
+    -opLoadMemory(instruction): void
+    -opLoadImmediate(instruction): void
+    -opStore(instruction): void
+    -opMove(instruction): void
+    -opArithmeticOrLogic(instruction): void
+    -opJumpIfEqual(instruction): bool
+    -opHalt(): Status
+  }
+  class InstructionDecoder {
+    +decode(raw: Word): Instruction
+    +isValid(raw: Word): bool
+  }
+  class Instruction <<value object>> {
+    -raw: Word
+    -opcode: Opcode
+
+    -r, s, t: RegisterIndex
+    -operand: Byte
+    +getOpcode(): Opcode
+    +getOperand(): Byte
+  }
+  class ALU {
+    +addSigned(a, b): Byte
+    +addFloat8Bit(a, b): Byte
+    +or(a, b): Byte
+    +and(a, b): Byte
+    +xor(a, b): Byte
+    +rotateRight(value, count): Byte
+  }
+  class Memory {
+    -cells: Byte[256]
+    +read(address): Byte
+    +write(address, value): void
+    +clear(): void
+  }
+  class RegisterFile {
+    -values: Byte[16]
+    +read(index): Byte
+    +write(index, value): void
+    +clear(): void
+  }
+}
+package "Output boundary" {
+  abstract class OutputDevice {
+    +write(value: Byte): void
+    +clear(): void
+    +getOutput(): string
+  }
+  class Screen {
+    -buffer: string
+    +write(value: Byte): void
+    +clear(): void
+    +getOutput(): string
+  }
+}
+VoleMachine *-- Memory
+VoleMachine *-- RegisterFile
+
+VoleMachine *-- CPU
+VoleMachine *-- ProgramLoader
+VoleMachine *-- Screen
+CPU *-- ControlUnit
+CPU *-- InstructionDecoder
+CPU *-- ALU
+CPU --> Memory : fetch / data
+CPU --> RegisterFile : register state
+ControlUnit --> Memory : read / write
+ControlUnit --> RegisterFile : operands / results
+ControlUnit --> ALU : arithmetic / logic
+ControlUnit --> OutputDevice : STORE to FF
+InstructionDecoder ..> Instruction : creates
+ProgramLoader ..> Memory : loads validated bytes
+Screen --|> OutputDevice
+ConsoleUI --> VoleMachine : controls / displays
+note right of Memory
+  256 bytes; addresses 00-FF
+  One 16-bit instruction = two bytes
+end note
+note right of CPU
+  PC is a byte address; advances by 2
+  IR holds the current 16-bit word
+end note
+note bottom of ControlUnit
+  Supported opcodes: 1-9, A, B, C
+  Opcode 3 / address FF maps to Screen
+end note
+note bottom of ALU
+  5: signed addition; 6: 8-bit float
+  7-9: OR / AND / XOR; A: rotate right
+end note
+note bottom of OutputDevice
+  Byte, Word, Address, RegisterIndex,
+  Opcode, Status, and RunMode are type aliases/enums,
+  not extra classes.
+end note
+@enduml
