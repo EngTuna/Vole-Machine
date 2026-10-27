@@ -1,0 +1,171 @@
+@startuml
+title Vole Machine Simulator - UML Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #F9F9F9
+skinparam classBorderColor #333333
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 60
+
+' ============ Storage ============
+class Memory {
+  - {static} SIZE : int = 256
+  - cells : string[256]
+  --
+  + Memory()
+  + getCell(address : int) : string
+  + setCell(address : int, value : string) : void
+  + clear() : void
+  + size() : int
+}
+
+class Register {
+  - value : string
+  --
+  + Register()
+  + getValue() : string
+  + setValue(value : string) : void
+}
+
+class Registers {
+  - {static} COUNT : int = 16
+  - regs : Register[16]
+  --
+  + Registers()
+  + getRegister(index : int) : string
+  + setRegister(index : int, value : string) : void
+  + clear() : void
+}
+
+' ============ ALU ============
+class ALU {
+  --
+  + add(a : string, b : string) : string
+  + addFloat(a : string, b : string) : string
+  + isEqual(a : string, b : string) : bool
+  + hexToDec(hex : string) : int
+  + decToHex(dec : int) : string
+  + hexToFloat(hex : string) : double
+  + floatToHex(value : double) : string
+}
+
+' ============ Control ============
+class Instruction {
+  - opcode : char
+  - regR : int
+  - regS : int
+  - regT : int
+  - address : string
+  --
+  + Instruction(raw : string)
+  + getOpcode() : char
+  + getR() : int
+  + getS() : int
+  + getT() : int
+  + getAddress() : string
+  + toString() : string
+}
+
+class ControlUnit {
+  --
+  + fetch(pc : int, mem : Memory) : string
+  + decode(raw : string) : Instruction
+  + execute(inst : Instruction, regs : Registers,\n  mem : Memory, alu : ALU) : bool
+  - opLoadFromMemory(inst : Instruction) : void
+  - opLoadImmediate(inst : Instruction) : void
+  - opStore(inst : Instruction) : void
+  - opMove(inst : Instruction) : void
+  - opAddInt(inst : Instruction) : void
+  - opAddFloat(inst : Instruction) : void
+  - opJump(inst : Instruction) : void
+  - opHalt() : void
+}
+
+class CPU {
+  - pc : int
+  - ir : string
+  - halted : bool
+  --
+  + CPU()
+  + step() : bool
+  + runAll() : void
+  + getPC() : int
+  + setPC(value : int) : void
+  + getIR() : string
+  + isHalted() : bool
+  + reset() : void
+}
+
+' ============ Machine / UI ============
+class VoleMachine {
+  - screen : Screen
+  --
+  + VoleMachine()
+  + loadProgram(fileName : string) : bool
+  + run() : void
+  + runStep() : void
+  + reset() : void
+  + getScreenOutput() : string
+  + displayState() : void
+}
+
+class Screen {
+  - buffer : string
+  --
+  + write(value : string) : void
+  + getBuffer() : string
+  + clear() : void
+}
+
+class MainMenu <<UI>> {
+  + showMenu() : void
+  + handleChoice(choice : int) : void
+}
+
+' ============ Relationships ============
+VoleMachine *-down- "1" CPU       : owns
+VoleMachine *-down- "1" Memory    : owns
+VoleMachine *-down- "1" Registers : owns
+VoleMachine *-right- "1" Screen   : owns
+
+Registers *-- "16" Register     : contains
+
+CPU *-down- "1" ControlUnit     : has
+CPU *-down- "1" ALU             : has
+CPU o-- "1" Memory              : uses
+CPU o-- "1" Registers           : uses
+
+ControlUnit ..> Instruction     : creates
+ControlUnit ..> ALU             : delegates arithmetic
+ControlUnit ..> Memory          : reads / writes
+ControlUnit ..> Registers       : reads / writes
+ControlUnit ..> Screen          : writes (addr 00)
+
+MainMenu -down-> VoleMachine    : controls
+
+note right of Memory
+  256 cells x 1 byte
+  addresses 00 - FF (hex)
+end note
+
+note right of Registers
+  16 registers x 1 byte
+  R0 - RF (hex)
+end note
+
+note bottom of ALU
+  add      : two's complement (opcode 5)
+  addFloat : 8-bit floating point (opcode 6)
+  isEqual  : used by JUMP (opcode B)
+end note
+
+note bottom of ControlUnit
+  Opcodes:
+  1 LOAD [mem]   2 LOAD imm   3 STORE
+  4 MOVE         5 ADD int    6 ADD float
+  B JUMP if R == R0           C HALT
+end note
+
+@enduml
